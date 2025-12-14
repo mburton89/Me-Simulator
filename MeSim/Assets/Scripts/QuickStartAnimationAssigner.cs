@@ -1,15 +1,14 @@
-using ReadyPlayerMe.Core;
 using ReadyPlayerMe.Samples.QuickStart;
 using UnityEngine;
 
 public class QuickStartAnimationAssigner : MonoBehaviour
 {
-    [SerializeField] private ThirdPersonLoader thirdPersonLoader; // Drag the RPM Player's ThirdPersonLoader here
-    [SerializeField] private RuntimeAnimatorController avatarAnimatorController; // Your Idle/Walk controller
+    [SerializeField] private ThirdPersonLoader thirdPersonLoader;
+    [SerializeField] private RuntimeAnimatorController arAvatarController; // Drag your new Blend Tree controller here
 
     private void OnEnable()
     {
-        thirdPersonLoader.OnLoadComplete += OnAvatarLoaded; // Subscribe to the built-in event
+        thirdPersonLoader.OnLoadComplete += OnAvatarLoaded;
     }
 
     private void OnDisable()
@@ -19,29 +18,12 @@ public class QuickStartAnimationAssigner : MonoBehaviour
 
     private void OnAvatarLoaded()
     {
-        // The loaded avatar is already set up in ThirdPersonLoader.SetupAvatar()
-        // Just grab the current avatar's Animator and assign your controller
-        var animator = thirdPersonLoader.GetComponentInChildren<Animator>(); // Or use the stored 'avatar' field if exposed
-        if (animator != null && avatarAnimatorController != null)
+        var animator = thirdPersonLoader.transform.GetComponentInChildren<Animator>();
+        if (animator != null && arAvatarController != null)
         {
-            animator.runtimeAnimatorController = avatarAnimatorController;
-            Debug.Log("Custom animations assigned to loaded avatar!");
+            animator.runtimeAnimatorController = arAvatarController;
+            animator.Update(0f); // Force immediate update
+            Debug.Log("AR Avatar Animator Controller assigned with Blend Tree!");
         }
-    }
-
-    // Your keypress controls (Alpha1/2)
-    private void Update()
-    {
-        var animator = thirdPersonLoader.GetComponentInChildren<Animator>();
-        if (animator == null) return;
-
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-            animator.Play("Idle", 0, 0f);
-
-        if (Input.GetKeyDown(KeyCode.Alpha2))
-            animator.Play("Walking", 0, 0f);
-
-        if (Input.GetKeyDown(KeyCode.Alpha3))
-            animator.Play("Running", 0, 0f);
     }
 }
