@@ -471,6 +471,11 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 8741277896955152619, guid: 3cb94ff40f012bb4ab10324a45fe5080, type: 3}
   m_PrefabInstance: {fileID: 126816169}
   m_PrefabAsset: {fileID: 0}
+--- !u!95 &126816171 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 4743778292632845048, guid: 3cb94ff40f012bb4ab10324a45fe5080, type: 3}
+  m_PrefabInstance: {fileID: 126816169}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &136406478
 GameObject:
   m_ObjectHideFlags: 0
@@ -4076,6 +4081,7 @@ MonoBehaviour:
   moveSpeed: 2.5
   rotationSpeed: 10
   stopDistance: 0.1
+  avatarAnimator: {fileID: 126816171}
 --- !u!1 &5108146750271852947
 GameObject:
   m_ObjectHideFlags: 0

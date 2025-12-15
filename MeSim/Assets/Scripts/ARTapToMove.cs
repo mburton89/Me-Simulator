@@ -7,11 +7,11 @@ public class ARTapToMove : MonoBehaviour
 {
     [Header("References")]
     [SerializeField]
-    [Tooltip("Drag the object you want to move here (must already be in the scene)")]
+    [Tooltip("Drag the PreviewAvatar (or the object with Animator) here")]
     private GameObject controlledObject;
 
-    [SerializeField] private Camera arCamera;                    // AR Camera (usually Main Camera)
-    [SerializeField] private GameObject moveIndicatorPrefab;    // Optional visual marker at target point
+    [SerializeField] private Camera arCamera;
+    [SerializeField] private GameObject moveIndicatorPrefab;
 
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 2.5f;
@@ -23,6 +23,9 @@ public class ARTapToMove : MonoBehaviour
     private bool isMoving = false;
     private GameObject currentMoveIndicator;
 
+    // Animation
+    [SerializeField] Animator avatarAnimator;
+
     private void Awake()
     {
         arRaycastManager = FindObjectOfType<ARRaycastManager>();
@@ -30,10 +33,20 @@ public class ARTapToMove : MonoBehaviour
         if (arCamera == null)
             arCamera = Camera.main;
 
-        // Optional safety check
         if (controlledObject == null)
         {
-            Debug.LogWarning("ARTapToMove: No controlledObject assigned! Drag your object into the field.");
+            Debug.LogWarning("ARTapToMove: No controlledObject assigned!");
+            return;
+        }
+
+        if (avatarAnimator == null)
+        {
+            Debug.LogError("ARTapToMove: No Animator found on controlledObject or its children!");
+        }
+        else
+        {
+            // Optional: Start in Idle
+            avatarAnimator.Play("Idle");
         }
     }
 
@@ -67,7 +80,13 @@ public class ARTapToMove : MonoBehaviour
         targetPosition = newTarget;
         isMoving = true;
 
-        // Optional visual indicator at target location
+        // Start Walking animation
+        if (avatarAnimator != null)
+        {
+            avatarAnimator.Play("Walking");
+        }
+
+        // Visual indicator
         if (moveIndicatorPrefab != null)
         {
             if (currentMoveIndicator != null)
@@ -86,19 +105,29 @@ public class ARTapToMove : MonoBehaviour
 
         if (distance <= stopDistance)
         {
+            // Arrived!
             isMoving = false;
+
+            // Switch to Idle
+            if (avatarAnimator != null)
+            {
+                avatarAnimator.Play("Idle");
+            }
+
             if (currentMoveIndicator != null)
             {
                 Destroy(currentMoveIndicator);
                 currentMoveIndicator = null;
             }
+
             return;
         }
 
+        // Continue moving
         Vector3 moveDirection = direction.normalized;
         controlledObject.transform.position += moveDirection * moveSpeed * Time.deltaTime;
 
-        // Smoothly rotate to face movement direction
+        // Rotate to face direction
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
@@ -107,6 +136,12 @@ public class ARTapToMove : MonoBehaviour
                 targetRotation,
                 rotationSpeed * Time.deltaTime
             );
+        }
+
+        // Ensure Walking is playing (in case of interruption)
+        if (avatarAnimator != null && avatarAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+        {
+            avatarAnimator.Play("Walking");
         }
     }
 }
