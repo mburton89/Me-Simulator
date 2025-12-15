@@ -4,7 +4,7 @@ using UnityEngine;
 public class QuickStartAnimationAssigner : MonoBehaviour
 {
     [SerializeField] private ThirdPersonLoader thirdPersonLoader;
-    [SerializeField] private RuntimeAnimatorController arAvatarController; // Drag your new Blend Tree controller here
+    [SerializeField] private RuntimeAnimatorController arAvatarController;
 
     private void OnEnable()
     {
@@ -18,24 +18,18 @@ public class QuickStartAnimationAssigner : MonoBehaviour
 
     private void OnAvatarLoaded()
     {
-        // PreviewAvatar gets destroyed automatically, replaced by loaded one
-        Transform avatarRoot = thirdPersonLoader.transform;
-        if (avatarRoot.childCount == 0) return;
+        if (thirdPersonLoader.transform.childCount == 0) return;
 
-        GameObject currentAvatar = avatarRoot.GetChild(0).gameObject;
+        GameObject loadedAvatar = thirdPersonLoader.transform.GetChild(0).gameObject;
+        Animator animator = loadedAvatar.GetComponentInChildren<Animator>();
 
-        Animator animator = currentAvatar.GetComponent<Animator>();
-        if (animator == null)
+        if (animator != null && arAvatarController != null)
         {
-            animator = currentAvatar.AddComponent<Animator>();
+            animator.runtimeAnimatorController = arAvatarController;
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            animator.Update(0f);
+            animator.SetFloat("Speed", 0f);
         }
-
-        animator.runtimeAnimatorController = arAvatarController;
-        animator.applyRootMotion = false;
-        animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-        animator.Update(0f);
-        animator.SetFloat("Speed", 0f); // Starts Idle
-
-        Debug.Log("Animations ready on loaded avatar!");
     }
 }
