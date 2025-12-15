@@ -5,10 +5,13 @@ using UnityEngine.XR.ARSubsystems;
 
 public class ARTapToMove : MonoBehaviour
 {
-    [Header("Prefabs & References")]
-    [SerializeField] private GameObject objectPrefab;           // Drag your Cube prefab here
-    [SerializeField] private Camera arCamera;                    // Usually auto-filled with Main Camera
-    [SerializeField] private GameObject moveIndicatorPrefab;    // Optional visual marker
+    [Header("References")]
+    [SerializeField]
+    [Tooltip("Drag the object you want to move here (must already be in the scene)")]
+    private GameObject controlledObject;
+
+    [SerializeField] private Camera arCamera;                    // AR Camera (usually Main Camera)
+    [SerializeField] private GameObject moveIndicatorPrefab;    // Optional visual marker at target point
 
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 2.5f;
@@ -16,7 +19,6 @@ public class ARTapToMove : MonoBehaviour
     [SerializeField] private float stopDistance = 0.1f;
 
     private ARRaycastManager arRaycastManager;
-    private GameObject controlledObject;
     private Vector3 targetPosition;
     private bool isMoving = false;
     private GameObject currentMoveIndicator;
@@ -27,13 +29,18 @@ public class ARTapToMove : MonoBehaviour
 
         if (arCamera == null)
             arCamera = Camera.main;
+
+        // Optional safety check
+        if (controlledObject == null)
+        {
+            Debug.LogWarning("ARTapToMove: No controlledObject assigned! Drag your object into the field.");
+        }
     }
 
     private void Update()
     {
         HandleTouchInput();
 
-        // Always try to move if we have an object and a target
         if (isMoving && controlledObject != null)
         {
             MoveTowardsTarget();
@@ -51,28 +58,8 @@ public class ARTapToMove : MonoBehaviour
         if (arRaycastManager.Raycast(touch.position, hits, TrackableType.Planes))
         {
             Vector3 hitPoint = hits[0].pose.position;
-
-            // First tap: spawn the cube
-            if (controlledObject == null)
-            {
-                SpawnObject(hitPoint);
-            }
-
-            // Every tap: set new target
             SetNewTarget(hitPoint);
         }
-    }
-
-    private void SpawnObject(Vector3 position)
-    {
-        if (objectPrefab == null)
-        {
-            Debug.LogError("No objectPrefab assigned!");
-            return;
-        }
-
-        controlledObject = Instantiate(objectPrefab, position, Quaternion.identity);
-        Debug.Log("Cube spawned!");
     }
 
     private void SetNewTarget(Vector3 newTarget)
@@ -80,7 +67,7 @@ public class ARTapToMove : MonoBehaviour
         targetPosition = newTarget;
         isMoving = true;
 
-        // Optional indicator
+        // Optional visual indicator at target location
         if (moveIndicatorPrefab != null)
         {
             if (currentMoveIndicator != null)
@@ -92,6 +79,8 @@ public class ARTapToMove : MonoBehaviour
 
     private void MoveTowardsTarget()
     {
+        if (controlledObject == null) return;
+
         Vector3 direction = targetPosition - controlledObject.transform.position;
         float distance = direction.magnitude;
 
@@ -109,7 +98,7 @@ public class ARTapToMove : MonoBehaviour
         Vector3 moveDirection = direction.normalized;
         controlledObject.transform.position += moveDirection * moveSpeed * Time.deltaTime;
 
-        // Rotate to face movement direction
+        // Smoothly rotate to face movement direction
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);

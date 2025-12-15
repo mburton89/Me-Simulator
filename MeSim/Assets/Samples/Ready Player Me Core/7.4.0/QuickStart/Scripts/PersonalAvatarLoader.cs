@@ -21,7 +21,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         [Header("Character Managers")]
         [SerializeField] private ThirdPersonLoader thirdPersonLoader;
-        [SerializeField] private CameraOrbit cameraOrbit;
+        //[SerializeField] private CameraOrbit cameraOrbit;
         [SerializeField] private ThirdPersonController thirdPersonController;
         
         private string defaultButtonText;
@@ -51,7 +51,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         private void OnOpenPersonalAvatarPanel()
         {
-            linkText.text = $"https://{CoreSettingsHandler.CoreSettings.Subdomain}.readyplayer.me";
+            //linkText.text = $"https://{CoreSettingsHandler.CoreSettings.Subdomain}.readyplayer.me";
             personalAvatarPanel.SetActive(true);
             SetActiveThirdPersonalControls(false);
             AnalyticsRuntimeLogger.EventLogger.LogLoadPersonalAvatarButton();
@@ -107,7 +107,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         private void SetActiveThirdPersonalControls(bool enable)
         {
-            cameraOrbit.enabled = enable;
+            //cameraOrbit.enabled = enable;
             thirdPersonController.enabled = enable;
         }
     }
