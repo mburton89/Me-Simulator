@@ -7,24 +7,17 @@ public class ARTapToMove : MonoBehaviour
 {
     [Header("References")]
     [SerializeField]
-    [Tooltip("Drag the PreviewAvatar (or the object with Animator) here")]
+    [Tooltip("Drag your cube (or any object already in the scene) here")]
     private GameObject controlledObject;
 
     [SerializeField] private Camera arCamera;
-    [SerializeField] private GameObject moveIndicatorPrefab;
 
-    [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 2.5f;
-    [SerializeField] private float rotationSpeed = 10f;
-    [SerializeField] private float stopDistance = 0.1f;
+    [SerializeField]
+    [Tooltip("Optional: a visual marker to show where you tapped")]
+    private GameObject moveIndicatorPrefab;
 
     private ARRaycastManager arRaycastManager;
-    private Vector3 targetPosition;
-    private bool isMoving = false;
     private GameObject currentMoveIndicator;
-
-    // Animation
-    [SerializeField] Animator avatarAnimator;
 
     private void Awake()
     {
@@ -35,29 +28,13 @@ public class ARTapToMove : MonoBehaviour
 
         if (controlledObject == null)
         {
-            Debug.LogWarning("ARTapToMove: No controlledObject assigned!");
-            return;
-        }
-
-        if (avatarAnimator == null)
-        {
-            Debug.LogError("ARTapToMove: No Animator found on controlledObject or its children!");
-        }
-        else
-        {
-            // Optional: Start in Idle
-            avatarAnimator.Play("Idle");
+            Debug.LogError("ARTapToMove: Please assign the controlledObject (your cube) in the Inspector!");
         }
     }
 
     private void Update()
     {
         HandleTouchInput();
-
-        if (isMoving && controlledObject != null)
-        {
-            MoveTowardsTarget();
-        }
     }
 
     private void HandleTouchInput()
@@ -71,77 +48,21 @@ public class ARTapToMove : MonoBehaviour
         if (arRaycastManager.Raycast(touch.position, hits, TrackableType.Planes))
         {
             Vector3 hitPoint = hits[0].pose.position;
-            SetNewTarget(hitPoint);
-        }
-    }
 
-    private void SetNewTarget(Vector3 newTarget)
-    {
-        targetPosition = newTarget;
-        isMoving = true;
-
-        // Start Walking animation
-        if (avatarAnimator != null)
-        {
-            avatarAnimator.Play("Walking");
-        }
-
-        // Visual indicator
-        if (moveIndicatorPrefab != null)
-        {
-            if (currentMoveIndicator != null)
-                Destroy(currentMoveIndicator);
-
-            currentMoveIndicator = Instantiate(moveIndicatorPrefab, targetPosition, Quaternion.identity);
-        }
-    }
-
-    private void MoveTowardsTarget()
-    {
-        if (controlledObject == null) return;
-
-        Vector3 direction = targetPosition - controlledObject.transform.position;
-        float distance = direction.magnitude;
-
-        if (distance <= stopDistance)
-        {
-            // Arrived!
-            isMoving = false;
-
-            // Switch to Idle
-            if (avatarAnimator != null)
+            // Immediately move the cube to the tapped location
+            if (controlledObject != null)
             {
-                avatarAnimator.Play("Idle");
+                controlledObject.transform.position = hitPoint;
             }
 
-            if (currentMoveIndicator != null)
+            // Optional: Show a visual indicator at the tap location
+            if (moveIndicatorPrefab != null)
             {
-                Destroy(currentMoveIndicator);
-                currentMoveIndicator = null;
+                if (currentMoveIndicator != null)
+                    Destroy(currentMoveIndicator);
+
+                currentMoveIndicator = Instantiate(moveIndicatorPrefab, hitPoint, Quaternion.identity);
             }
-
-            return;
-        }
-
-        // Continue moving
-        Vector3 moveDirection = direction.normalized;
-        controlledObject.transform.position += moveDirection * moveSpeed * Time.deltaTime;
-
-        // Rotate to face direction
-        if (moveDirection != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            controlledObject.transform.rotation = Quaternion.Slerp(
-                controlledObject.transform.rotation,
-                targetRotation,
-                rotationSpeed * Time.deltaTime
-            );
-        }
-
-        // Ensure Walking is playing (in case of interruption)
-        if (avatarAnimator != null && avatarAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
-        {
-            avatarAnimator.Play("Walking");
         }
     }
 }
