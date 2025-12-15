@@ -553,6 +553,7 @@ MonoBehaviour:
   moveSpeed: 2.5
   rotationSpeed: 10
   stopDistance: 0.1
+  avatarRoot: {fileID: 0}
 --- !u!1 &5108146750271852947
 GameObject:
   m_ObjectHideFlags: 0
@@ -563,7 +564,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2701124098165907118}
   - component: {fileID: 4100468667132164360}
-  - component: {fileID: 5108146750271852948}
   m_Layer: 0
   m_Name: AR Manager
   m_TagString: Untagged
@@ -571,20 +571,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &5108146750271852948
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5108146750271852947}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d66292a0a9dbc9a4fb662a5978a3fff3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AvatarLoaderManager
-  defaultAvatarUrl: https://models.readyplayer.me/6185a4acfb622cf1cdc49348.glb
-  arTapToMove: {fileID: 4100468667132164360}
 --- !u!64 &5124030022265247376
 MeshCollider:
   m_ObjectHideFlags: 0

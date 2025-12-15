@@ -6,9 +6,9 @@ using UnityEngine.XR.ARSubsystems;
 public class ARTapToMove : MonoBehaviour
 {
     [Header("Prefabs & References")]
-    [SerializeField] private GameObject objectPrefab;           // Cube prefab (or later: nothing if only using avatar)
-    [SerializeField] private Camera arCamera;                    // AR Camera
-    [SerializeField] private GameObject moveIndicatorPrefab;    // Optional target marker
+    [SerializeField] private GameObject objectPrefab;           // Drag your Cube prefab here
+    [SerializeField] private Camera arCamera;                    // Usually auto-filled with Main Camera
+    [SerializeField] private GameObject moveIndicatorPrefab;    // Optional visual marker
 
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 2.5f;
@@ -16,20 +16,10 @@ public class ARTapToMove : MonoBehaviour
     [SerializeField] private float stopDistance = 0.1f;
 
     private ARRaycastManager arRaycastManager;
-    private GameObject controlledObject;        // The current object being moved (cube or avatar)
+    private GameObject controlledObject;
     private Vector3 targetPosition;
     private bool isMoving = false;
     private GameObject currentMoveIndicator;
-
-
-    [Header("AR Avatar Control")]
-    [SerializeField] private Transform avatarRoot; // Drag "RPM Player" here
-
-    // Helper for AvatarLoaderManager to get current position (even if no object yet)
-    public Vector3 CurrentObjectPosition
-    {
-        get { return controlledObject != null ? controlledObject.transform.position : Vector3.zero; }
-    }
 
     private void Awake()
     {
@@ -37,23 +27,16 @@ public class ARTapToMove : MonoBehaviour
 
         if (arCamera == null)
             arCamera = Camera.main;
-
-        targetPosition = Vector3.zero;
     }
 
     private void Update()
     {
         HandleTouchInput();
 
-        // Always try to find the current avatar under the root
-        if (avatarRoot != null && avatarRoot.childCount > 0)
+        // Always try to move if we have an object and a target
+        if (isMoving && controlledObject != null)
         {
-            controlledObject = avatarRoot.GetChild(0).gameObject;
-
-            if (isMoving && controlledObject != null)
-            {
-                MoveTowardsTarget();
-            }
+            MoveTowardsTarget();
         }
     }
 
@@ -69,21 +52,27 @@ public class ARTapToMove : MonoBehaviour
         {
             Vector3 hitPoint = hits[0].pose.position;
 
-            // First tap: spawn cube if no object exists yet
-            if (controlledObject == null && objectPrefab != null)
+            // First tap: spawn the cube
+            if (controlledObject == null)
             {
                 SpawnObject(hitPoint);
             }
 
-            // Always set new target on valid tap
+            // Every tap: set new target
             SetNewTarget(hitPoint);
         }
     }
 
     private void SpawnObject(Vector3 position)
     {
+        if (objectPrefab == null)
+        {
+            Debug.LogError("No objectPrefab assigned!");
+            return;
+        }
+
         controlledObject = Instantiate(objectPrefab, position, Quaternion.identity);
-        Debug.Log("Cube spawned at first tap!");
+        Debug.Log("Cube spawned!");
     }
 
     private void SetNewTarget(Vector3 newTarget)
@@ -91,7 +80,7 @@ public class ARTapToMove : MonoBehaviour
         targetPosition = newTarget;
         isMoving = true;
 
-        // Visual feedback
+        // Optional indicator
         if (moveIndicatorPrefab != null)
         {
             if (currentMoveIndicator != null)
@@ -120,6 +109,7 @@ public class ARTapToMove : MonoBehaviour
         Vector3 moveDirection = direction.normalized;
         controlledObject.transform.position += moveDirection * moveSpeed * Time.deltaTime;
 
+        // Rotate to face movement direction
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
@@ -129,24 +119,5 @@ public class ARTapToMove : MonoBehaviour
                 rotationSpeed * Time.deltaTime
             );
         }
-    }
-
-    // Called by AvatarLoaderManager when RPM avatar is ready
-    public void SwitchToNewObject(GameObject newObject)
-    {
-        if (controlledObject != null)
-        {
-            Destroy(controlledObject); // Remove cube
-        }
-
-        controlledObject = newObject;
-
-        // If we were mid-movement, keep going toward the same target
-        if (isMoving)
-        {
-            SetNewTarget(targetPosition); // Re-show indicator if needed
-        }
-
-        Debug.Log("Switched to new object (RPM Avatar)!");
     }
 }
