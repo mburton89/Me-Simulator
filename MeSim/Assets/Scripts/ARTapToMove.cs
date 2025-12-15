@@ -21,9 +21,10 @@ public class ARTapToMove : MonoBehaviour
     private bool isMoving = false;
     private GameObject currentMoveIndicator;
 
+    private Animator currentAnimator; // We'll cache it
 
     [Header("AR Avatar Control")]
-    [SerializeField] private Transform avatarRoot; // Drag "RPM Player" here
+    [SerializeField] private Transform rpmPlayerRoot; // Drag RPM Player here
 
     // Helper for AvatarLoaderManager to get current position (even if no object yet)
     public Vector3 CurrentObjectPosition
@@ -45,10 +46,9 @@ public class ARTapToMove : MonoBehaviour
     {
         HandleTouchInput();
 
-        // Always try to find the current avatar under the root
-        if (avatarRoot != null && avatarRoot.childCount > 0)
+        if (rpmPlayerRoot != null && rpmPlayerRoot.childCount > 0)
         {
-            controlledObject = avatarRoot.GetChild(0).gameObject;
+            controlledObject = rpmPlayerRoot.GetChild(0).gameObject;
 
             if (isMoving && controlledObject != null)
             {
@@ -103,6 +103,8 @@ public class ARTapToMove : MonoBehaviour
 
     private void MoveTowardsTarget()
     {
+        if (controlledObject == null) return;
+
         Vector3 direction = targetPosition - controlledObject.transform.position;
         float distance = direction.magnitude;
 
@@ -114,8 +116,14 @@ public class ARTapToMove : MonoBehaviour
                 Destroy(currentMoveIndicator);
                 currentMoveIndicator = null;
             }
+
+            // Stopped → Idle
+            SetAnimationSpeed(0f);
             return;
         }
+
+        // Moving → Walk
+        SetAnimationSpeed(1f);
 
         Vector3 moveDirection = direction.normalized;
         controlledObject.transform.position += moveDirection * moveSpeed * Time.deltaTime;
@@ -128,6 +136,20 @@ public class ARTapToMove : MonoBehaviour
                 targetRotation,
                 rotationSpeed * Time.deltaTime
             );
+        }
+    }
+
+    private void SetAnimationSpeed(float speed)
+    {
+        // Find and cache animator if needed
+        if (currentAnimator == null || currentAnimator.gameObject != controlledObject)
+        {
+            currentAnimator = controlledObject.GetComponentInChildren<Animator>();
+        }
+
+        if (currentAnimator != null)
+        {
+            currentAnimator.SetFloat("Speed", speed);
         }
     }
 
@@ -148,5 +170,18 @@ public class ARTapToMove : MonoBehaviour
         }
 
         Debug.Log("Switched to new object (RPM Avatar)!");
+
+        controlledObject = newObject;
+        currentAnimator = null; // Will be refreshed on next SetAnimationSpeed call
+
+        if (isMoving)
+        {
+            SetNewTarget(targetPosition);
+            SetAnimationSpeed(1f); // Resume walking if mid-movement
+        }
+        else
+        {
+            SetAnimationSpeed(0f);
+        }
     }
 }

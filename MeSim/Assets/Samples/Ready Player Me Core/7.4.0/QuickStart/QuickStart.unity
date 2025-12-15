@@ -2824,7 +2824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuickStartAnimationAssigner
   thirdPersonLoader: {fileID: 2260252}
-  avatarAnimatorController: {fileID: 9100000, guid: 0d16bc9b63a34e440b05bfb64a4b7d3b, type: 2}
+  arAvatarController: {fileID: 9100000, guid: b8611c23fad30904c88b82897b7f37c8, type: 2}
 --- !u!4 &1389165634
 Transform:
   m_ObjectHideFlags: 0

@@ -18,12 +18,24 @@ public class QuickStartAnimationAssigner : MonoBehaviour
 
     private void OnAvatarLoaded()
     {
-        var animator = thirdPersonLoader.transform.GetComponentInChildren<Animator>();
-        if (animator != null && arAvatarController != null)
+        // PreviewAvatar gets destroyed automatically, replaced by loaded one
+        Transform avatarRoot = thirdPersonLoader.transform;
+        if (avatarRoot.childCount == 0) return;
+
+        GameObject currentAvatar = avatarRoot.GetChild(0).gameObject;
+
+        Animator animator = currentAvatar.GetComponent<Animator>();
+        if (animator == null)
         {
-            animator.runtimeAnimatorController = arAvatarController;
-            animator.Update(0f); // Force immediate update
-            Debug.Log("AR Avatar Animator Controller assigned with Blend Tree!");
+            animator = currentAvatar.AddComponent<Animator>();
         }
+
+        animator.runtimeAnimatorController = arAvatarController;
+        animator.applyRootMotion = false;
+        animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        animator.Update(0f);
+        animator.SetFloat("Speed", 0f); // Starts Idle
+
+        Debug.Log("Animations ready on loaded avatar!");
     }
 }
