@@ -40,28 +40,31 @@ public class ARTapToMove : MonoBehaviour
     private void HandleTouchInput()
     {
         if (Input.touchCount == 0) return;
-
         Touch touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
 
         List<ARRaycastHit> hits = new List<ARRaycastHit>();
-        if (arRaycastManager.Raycast(touch.position, hits, TrackableType.Planes))
+        if (arRaycastManager.Raycast(touch.position, hits, TrackableType.PlaneWithinBounds))
         {
-            Vector3 hitPoint = hits[0].pose.position; // + Vector3.up * 0.8f; // Adjust 0.8f to avatar's height
-
-            // Immediately move the cube to the tapped location
-            if (controlledObject != null)
+            foreach (var hit in hits)
             {
-                controlledObject.transform.position = hitPoint;
-            }
+                if (hit.trackable is ARPlane plane && plane.alignment == PlaneAlignment.HorizontalUp)
+                {
+                    Vector3 hitPoint = hit.pose.position + Vector3.up * 0.02f; // tiny lift
 
-            // Optional: Show a visual indicator at the tap location
-            if (moveIndicatorPrefab != null)
-            {
-                if (currentMoveIndicator != null)
-                    Destroy(currentMoveIndicator);
+                    if (controlledObject != null)
+                    {
+                        controlledObject.transform.position = hitPoint;
+                    }
 
-                currentMoveIndicator = Instantiate(moveIndicatorPrefab, hitPoint, Quaternion.identity);
+                    if (moveIndicatorPrefab != null)
+                    {
+                        if (currentMoveIndicator != null)
+                            Destroy(currentMoveIndicator);
+                        currentMoveIndicator = Instantiate(moveIndicatorPrefab, hitPoint, Quaternion.identity);
+                    }
+                    break; // stop after first valid floor hit
+                }
             }
         }
     }
