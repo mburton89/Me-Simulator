@@ -18,12 +18,12 @@ namespace ReadyPlayerMe.Samples.QuickStart
         private Vector3 moveVector;
         private GameObject avatar;
         private ThirdPersonMovement thirdPersonMovement;
-        private PlayerInput playerInput;
+        [HideInInspector] public PlayerInput playerInput;
         
         private float fallTimeoutDelta;
         
         [SerializeField][Tooltip("Useful to toggle input detection in editor")]
-        private bool inputEnabled = true;
+        [HideInInspector] public bool inputEnabled = true;
         private bool isInitialized;
 
         private void Init()

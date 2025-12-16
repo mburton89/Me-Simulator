@@ -7,8 +7,8 @@ namespace ReadyPlayerMe.Samples.QuickStart
     {
         private const float TURN_SMOOTH_TIME = 0.05f;
 
-        [SerializeField][Tooltip("Used to determine movement direction based on input and camera forward axis")] 
-        private Transform playerCamera;
+        [SerializeField][Tooltip("Used to determine movement direction based on input and camera forward axis")]
+        [HideInInspector] public Transform playerCamera;
         [SerializeField][Tooltip("Move speed of the character in")]
         private float walkSpeed = 3f;
         [SerializeField][Tooltip("Run speed of the character")] 
