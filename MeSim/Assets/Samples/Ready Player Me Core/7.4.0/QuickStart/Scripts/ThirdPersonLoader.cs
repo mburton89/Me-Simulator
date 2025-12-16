@@ -69,7 +69,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
             var controller = GetComponent<ThirdPersonController>();
             if (controller != null)
             {
-                controller.Setup(avatar, animatorController);
+                controller.Setup(avatar, animatorController);   
             }
         }
 
