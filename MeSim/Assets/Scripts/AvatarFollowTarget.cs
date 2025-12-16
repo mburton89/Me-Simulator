@@ -3,16 +3,14 @@ using UnityEngine;
 
 public class AvatarFollowTarget : MonoBehaviour
 {
-    [Header("Follow Target")]
     [SerializeField] private Transform cubeTarget;
-
-    [Header("Follow Settings")]
-    [SerializeField] private float stopDistance = 0.8f;        // Increased — stop when this close
+    [SerializeField] private float stopDistance = 0.8f;
     [SerializeField] private float runDistanceThreshold = 5f;
-    [SerializeField] private float inputSmoothing = 0.1f;       // Smooth input changes to reduce jitter
+    [SerializeField] private float inputSmoothing = 0.1f;
 
     private ThirdPersonMovement movement;
     private ThirdPersonController controller;
+    private CharacterController characterController;
 
     private float smoothedInputX;
     private float smoothedInputY;
@@ -21,13 +19,14 @@ public class AvatarFollowTarget : MonoBehaviour
     {
         movement = GetComponent<ThirdPersonMovement>();
         controller = GetComponent<ThirdPersonController>();
+        characterController = GetComponent<CharacterController>();
 
         if (controller != null)
-            controller.inputEnabled = false; // Disable real keyboard input
+            controller.inputEnabled = false;
 
-        if (movement == null || cubeTarget == null)
+        if (movement == null || cubeTarget == null || characterController == null)
         {
-            Debug.LogError("AvatarCubeFollower: Missing components or target!");
+            Debug.LogError("AvatarFollowTarget: Missing components!");
         }
     }
 
@@ -40,26 +39,38 @@ public class AvatarFollowTarget : MonoBehaviour
 
         if (distance < stopDistance)
         {
-            // Close enough — stop moving
             SmoothInputTowards(0, 0);
             movement.Move(smoothedInputX, smoothedInputY);
             movement.SetIsRunning(false);
             return;
         }
 
-        // Calculate desired input direction relative to camera
+        // Horizontal camera-relative input
         Vector3 camRight = movement.playerCamera.right;
         Vector3 camForward = Vector3.ProjectOnPlane(movement.playerCamera.forward, Vector3.up).normalized;
 
-        float desiredInputX = Vector3.Dot(direction.normalized, camRight);
-        float desiredInputY = Vector3.Dot(direction.normalized, camForward);
+        Vector3 horizontalDir = Vector3.ProjectOnPlane(direction, Vector3.up);
+        if (horizontalDir.sqrMagnitude > 0.01f)
+        {
+            float desiredInputX = Vector3.Dot(horizontalDir.normalized, camRight);
+            float desiredInputY = Vector3.Dot(horizontalDir.normalized, camForward);
 
-        // Smooth the input to prevent sudden changes
-        SmoothInputTowards(desiredInputX, desiredInputY);
+            SmoothInputTowards(desiredInputX, desiredInputY);
+        }
 
-        // Apply movement
+        // Apply horizontal movement via QuickStart system
         movement.Move(smoothedInputX, smoothedInputY);
         movement.SetIsRunning(distance > runDistanceThreshold);
+
+        // Direct vertical movement (since gravity is disabled)
+        if (Mathf.Abs(direction.y) > 0.05f)
+        {
+            float verticalSpeed = Mathf.Sign(direction.y) * movement.walkSpeed * 0.8f; // Slightly slower climb
+            characterController.Move(Vector3.up * verticalSpeed * Time.deltaTime);
+        }
+
+        // Keep upright
+        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
     }
 
     private void SmoothInputTowards(float targetX, float targetY)

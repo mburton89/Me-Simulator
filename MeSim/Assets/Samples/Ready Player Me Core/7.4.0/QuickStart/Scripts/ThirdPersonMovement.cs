@@ -10,7 +10,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
         [SerializeField][Tooltip("Used to determine movement direction based on input and camera forward axis")]
         [HideInInspector] public Transform playerCamera;
         [SerializeField][Tooltip("Move speed of the character in")]
-        private float walkSpeed = 3f;
+        public float walkSpeed = 3f;
         [SerializeField][Tooltip("Run speed of the character")] 
         private float runSpeed = 8f;
         [SerializeField][Tooltip("The character uses its own gravity value. The engine default is -9.81f")] 
@@ -20,8 +20,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         private CharacterController controller;
         private GameObject avatar;
-        
-        private float verticalVelocity;
+        private float verticalVelocity;  
         private float turnSmoothVelocity;
 
         private bool jumpTrigger;
@@ -29,7 +28,12 @@ namespace ReadyPlayerMe.Samples.QuickStart
         private bool isRunning;
 
         private GroundCheck groundCheck;
-        
+
+        [Header("AR Follow Mode")]
+        [SerializeField] private bool enableARFollowMode = true; // Check this in Inspector for your AR build
+        [SerializeField] private Transform arFollowTarget;       // Drag the cube here (optional, if you want to set from Inspector)
+        [SerializeField] private float runDistanceThreshold = 5f; // Distance at which to trigger running animation
+
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
@@ -47,19 +51,55 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         public void Move(float inputX, float inputY)
         {
-            var moveDirection = playerCamera.right * inputX + playerCamera.forward * inputY;
-            var moveSpeed = isRunning ? runSpeed: walkSpeed;
+            if (enableARFollowMode && arFollowTarget != null)
+            {
+                ARFollowModeMove();
+                return;
+            }
 
-            JumpAndGravity();
-            controller.Move(moveDirection.normalized * (moveSpeed * Time.deltaTime) +  new Vector3(0.0f, verticalVelocity * Time.deltaTime, 0.0f));
+            // Simplified flat-ground movement (no gravity since AR doesn't need it)
+            var moveDirection = playerCamera.right * inputX + playerCamera.forward * inputY;
+            var moveSpeed = isRunning ? runSpeed : walkSpeed;
+
+            controller.Move(moveDirection.normalized * moveSpeed * Time.deltaTime);
 
             var moveMagnitude = moveDirection.magnitude;
             CurrentMoveSpeed = isRunning ? runSpeed * moveMagnitude : walkSpeed * moveMagnitude;
-            
+
             if (moveMagnitude > 0)
             {
                 RotateAvatarTowardsMoveDirection(moveDirection);
             }
+        }
+
+        private void ARFollowModeMove()
+        {
+            Vector3 direction = arFollowTarget.position - transform.position;
+            float distance = direction.magnitude;
+
+            if (distance < 0.1f)
+            {
+                CurrentMoveSpeed = 0f;
+                return;
+            }
+
+            // Full 3D movement (including Y)
+            Vector3 moveDir = direction.normalized;
+            float speed = isRunning ? runSpeed : walkSpeed;
+            controller.Move(moveDir * speed * Time.deltaTime);
+
+            CurrentMoveSpeed = speed * Mathf.Clamp01(distance / runDistanceThreshold); // For animation blending
+
+            // Rotate to face target direction (horizontal only — keep upright)
+            Vector3 horizontalDir = new Vector3(moveDir.x, 0, moveDir.z);
+            if (horizontalDir.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(horizontalDir);
+                avatar.transform.rotation = Quaternion.Slerp(avatar.transform.rotation, targetRot, 10f * Time.deltaTime);
+            }
+
+            // Keep avatar upright
+            transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
         }
 
         private void RotateAvatarTowardsMoveDirection(Vector3 moveDirection)
@@ -69,21 +109,6 @@ namespace ReadyPlayerMe.Samples.QuickStart
             avatar.transform.rotation = Quaternion.Euler(0, angle, 0);
         }
 
-        private void JumpAndGravity()
-        {
-            if (controller.isGrounded && verticalVelocity< 0)
-            {
-                verticalVelocity = -2f;
-            }
-            
-            if (jumpTrigger && controller.isGrounded)
-            {
-                verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
-                jumpTrigger = false;
-            }
-            
-            verticalVelocity += gravity * Time.deltaTime;
-        }
 
         public void SetIsRunning(bool running)
         {
@@ -102,10 +127,6 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         public bool IsGrounded()
         {
-            if (verticalVelocity > 0)
-            {
-                return false;
-            }
             return groundCheck.IsGrounded();
         }
     }

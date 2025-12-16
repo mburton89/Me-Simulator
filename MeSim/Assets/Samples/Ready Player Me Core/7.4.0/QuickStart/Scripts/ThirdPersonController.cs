@@ -68,25 +68,10 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         private void UpdateAnimator()
         {
-            var isGrounded = thirdPersonMovement.IsGrounded();
+            // Remove ground check — always assume grounded
             animator.SetFloat(MoveSpeedHash, thirdPersonMovement.CurrentMoveSpeed);
-            animator.SetBool(IsGroundedHash, isGrounded);
-            if (isGrounded)
-            {
-                fallTimeoutDelta = FALL_TIMEOUT;
-                animator.SetBool(FreeFallHash, false);
-            }
-            else
-            {
-                if (fallTimeoutDelta >= 0.0f)
-                {
-                    fallTimeoutDelta -= Time.deltaTime;
-                }
-                else
-                {
-                    animator.SetBool(FreeFallHash, true);
-                }
-            }
+            animator.SetBool(IsGroundedHash, true); // or remove this line entirely
+            animator.SetBool(FreeFallHash, false);
         }
 
         private void OnJump()

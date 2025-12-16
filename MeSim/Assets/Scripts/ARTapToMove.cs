@@ -47,7 +47,7 @@ public class ARTapToMove : MonoBehaviour
         List<ARRaycastHit> hits = new List<ARRaycastHit>();
         if (arRaycastManager.Raycast(touch.position, hits, TrackableType.Planes))
         {
-            Vector3 hitPoint = hits[0].pose.position;
+            Vector3 hitPoint = hits[0].pose.position; // + Vector3.up * 0.8f; // Adjust 0.8f to avatar's height
 
             // Immediately move the cube to the tapped location
             if (controlledObject != null)
