@@ -10,7 +10,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
         
         [SerializeField][Tooltip("RPM avatar URL or shortcode to load")] 
         private string avatarUrl;
-        private GameObject avatar;
+        public GameObject avatar;
         private AvatarObjectLoader avatarObjectLoader;
         [SerializeField][Tooltip("Animator to use on loaded avatar")] 
         private RuntimeAnimatorController animatorController;

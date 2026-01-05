@@ -2515,7 +2515,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e158935fbbcaed343ae79333709b1e49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToggleScaleButton
-  targetObject: {fileID: 765065673}
+  targetObject: {fileID: 2075329110}
   minScale: {x: 0.4, y: 0.4, z: 0.4}
   maxScale: {x: 0.9, y: 0.9, z: 0.9}
   isMaximized: 1

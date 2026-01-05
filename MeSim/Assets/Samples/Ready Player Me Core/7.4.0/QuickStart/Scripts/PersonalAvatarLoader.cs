@@ -8,6 +8,8 @@ namespace ReadyPlayerMe.Samples.QuickStart
 {
     public class PersonalAvatarLoader : MonoBehaviour
     {
+        private const string SAVED_AVATAR_URL_KEY = "SavedPersonalAvatarURL";
+
         [Header("UI")]
         [SerializeField] private Text openPersonalAvatarPanelButtonText;
         [SerializeField] private Text linkText;
@@ -21,14 +23,49 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         [Header("Character Managers")]
         [SerializeField] private ThirdPersonLoader thirdPersonLoader;
-        //[SerializeField] private CameraOrbit cameraOrbit;
         [SerializeField] private ThirdPersonController thirdPersonController;
-        
+
         private string defaultButtonText;
+        private string pendingAvatarUrl;
+        private bool attemptAutoLoad = false; // Flag to trigger delayed auto-load
+
+        private void Awake()
+        {
+            thirdPersonLoader.OnLoadComplete += OnThirdPersonLoadComplete;
+        }
 
         private void Start()
         {
             AnalyticsRuntimeLogger.EventLogger.LogRunQuickStartScene();
+
+            defaultButtonText = openPersonalAvatarPanelButtonText.text;
+
+            // Mark that we should try auto-loading after one frame
+            if (PlayerPrefs.HasKey(SAVED_AVATAR_URL_KEY))
+            {
+                string savedUrl = PlayerPrefs.GetString(SAVED_AVATAR_URL_KEY);
+                if (!string.IsNullOrEmpty(savedUrl) && Uri.TryCreate(savedUrl, UriKind.Absolute, out _))
+                {
+                    pendingAvatarUrl = savedUrl;
+                    attemptAutoLoad = true; 
+                    Debug.Log($"Queued auto-load for saved avatar: {savedUrl}");
+                }
+            }
+        }
+
+        private void LateUpdate()
+        {
+            // Perform delayed auto-load after all Start() methods have run
+            if (attemptAutoLoad)
+            {
+                attemptAutoLoad = false;
+
+                if (!string.IsNullOrEmpty(pendingAvatarUrl))
+                {
+                    LoadAvatar(pendingAvatarUrl);
+                    pendingAvatarUrl = null; // Clear early to avoid re-trigger
+                }
+            }
         }
 
         private void OnEnable()
@@ -47,14 +84,20 @@ namespace ReadyPlayerMe.Samples.QuickStart
             linkButton.onClick.RemoveListener(OnLinkButton);
             loadAvatarButton.onClick.RemoveListener(OnLoadAvatarButton);
             avatarUrlField.onValueChanged.RemoveListener(OnAvatarUrlFieldValueChanged);
+
+            thirdPersonLoader.OnLoadComplete -= OnThirdPersonLoadComplete;
         }
 
         private void OnOpenPersonalAvatarPanel()
         {
-            //linkText.text = $"https://{CoreSettingsHandler.CoreSettings.Subdomain}.readyplayer.me";
             personalAvatarPanel.SetActive(true);
             SetActiveThirdPersonalControls(false);
             AnalyticsRuntimeLogger.EventLogger.LogLoadPersonalAvatarButton();
+
+            if (PlayerPrefs.HasKey(SAVED_AVATAR_URL_KEY))
+            {
+                avatarUrlField.text = PlayerPrefs.GetString(SAVED_AVATAR_URL_KEY);
+            }
         }
 
         private void OnCloseButton()
@@ -70,32 +113,53 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         private void OnLoadAvatarButton()
         {
-            thirdPersonLoader.OnLoadComplete += OnLoadComplete;
-            defaultButtonText = openPersonalAvatarPanelButtonText.text;
-            SetActiveLoading(true, "Loading...");
+            string url = avatarUrlField.text.Trim();
+            if (!string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out _))
+            {
+                LoadAvatar(url);
+                AnalyticsRuntimeLogger.EventLogger.LogPersonalAvatarLoading(url);
+            }
+        }
 
-            thirdPersonLoader.LoadAvatar(avatarUrlField.text);
+        private void LoadAvatar(string url)
+        {
+            pendingAvatarUrl = url;
+
+            SetActiveLoading(true, "Loading Avatar...");
+
+            thirdPersonLoader.LoadAvatar(url);
+
             personalAvatarPanel.SetActive(false);
             SetActiveThirdPersonalControls(true);
-            AnalyticsRuntimeLogger.EventLogger.LogPersonalAvatarLoading(avatarUrlField.text);
+        }
+
+        private void OnThirdPersonLoadComplete()
+        {
+            if (thirdPersonLoader.avatar != null)
+            {
+                // SUCCESS
+                if (!string.IsNullOrEmpty(pendingAvatarUrl))
+                {
+                    PlayerPrefs.SetString(SAVED_AVATAR_URL_KEY, pendingAvatarUrl);
+                    PlayerPrefs.Save();
+                    Debug.Log($"Avatar loaded and URL saved: {pendingAvatarUrl}");
+                }
+            }
+            else
+            {
+                // FAILURE
+                Debug.LogWarning("Avatar failed to load.");
+                // Do not save bad URL
+            }
+
+            SetActiveLoading(false, defaultButtonText);
+            pendingAvatarUrl = null;
         }
 
         private void OnAvatarUrlFieldValueChanged(string url)
         {
-            if (!string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out Uri _))
-            {
-                loadAvatarButton.interactable = true;
-            }
-            else
-            {
-                loadAvatarButton.interactable = false;
-            }
-        }
-
-        private void OnLoadComplete()
-        {
-            thirdPersonLoader.OnLoadComplete -= OnLoadComplete;
-            SetActiveLoading(false, defaultButtonText);
+            bool isValid = !string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out _);
+            loadAvatarButton.interactable = isValid;
         }
 
         private void SetActiveLoading(bool enable, string text)
@@ -107,7 +171,6 @@ namespace ReadyPlayerMe.Samples.QuickStart
 
         private void SetActiveThirdPersonalControls(bool enable)
         {
-            //cameraOrbit.enabled = enable;
             thirdPersonController.enabled = enable;
         }
     }
