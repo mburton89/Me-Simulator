@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
@@ -19,8 +21,12 @@ public class ARTapToMove : MonoBehaviour
 
     [Header("UI Feedback")]
     [SerializeField]
-    [Tooltip("UI Image to show placement status: Green = success, Red = failure")]
+    [Tooltip("UI Image to show floor status: Green = detected, Red = not detected")]
     private Image statusIndicatorImage;
+
+    [SerializeField]
+    [Tooltip("TextMeshPro text for instructional messages")]
+    private TextMeshProUGUI instructionText;
 
     [SerializeField] private Color successColor = Color.green;
     [SerializeField] private Color failureColor = Color.red;
@@ -28,34 +34,82 @@ public class ARTapToMove : MonoBehaviour
     private ARRaycastManager arRaycastManager;
     private GameObject currentMoveIndicator;
 
+    // Current floor detection state
+    private bool floorCurrentlyDetected = false;
+    private Coroutine messageCoroutine;
+
+    private const string InstructionMessage = "Point your camera at the floor to detect it.";
+    private const string SuccessMessage = "Floor Found!";
+
     private void Awake()
     {
         arRaycastManager = FindObjectOfType<ARRaycastManager>();
-
         if (arRaycastManager == null)
         {
             Debug.LogError("ARRaycastManager not found in scene! Make sure ARSessionOrigin is present.");
         }
 
         if (arCamera == null)
-        { 
             arCamera = Camera.main;
-        }
 
         if (controlledObject == null)
         {
-            Debug.LogError("ARTapToMove: Please assign the controlledObject (your cube) in the Inspector!");
+            Debug.LogError("ARTapToMove: Please assign the controlledObject in the Inspector!");
         }
 
-        if (statusIndicatorImage != null)
-        {
-            statusIndicatorImage.color = failureColor; // Start as red (no placement yet)
-        }
+        InitializeUI();
+    }
+
+    private void InitializeUI()
+    {
+        // Start with red + instruction text
+        UpdateFloorStatus(false);
     }
 
     private void Update()
     {
+        // Always check floor status (detected or lost)
+        CheckFloorStatusContinuously();
+
+        // Handle taps separately
         HandleTouchInput();
+    }
+
+    private void CheckFloorStatusContinuously()
+    {
+        Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        List<ARRaycastHit> hits = new List<ARRaycastHit>();
+
+        bool currentlyDetected = false;
+
+        if (arRaycastManager.Raycast(screenCenter, hits, TrackableType.PlaneWithinBounds))
+        {
+            foreach (var hit in hits)
+            {
+                if (hit.trackable is ARPlane plane && plane.alignment == PlaneAlignment.HorizontalUp)
+                {
+                    currentlyDetected = true;
+                    break;
+                }
+            }
+        }
+
+        // Only update UI if the detection state changed
+        if (currentlyDetected != floorCurrentlyDetected)
+        {
+            floorCurrentlyDetected = currentlyDetected;
+            UpdateFloorStatus(floorCurrentlyDetected);
+
+            if (floorCurrentlyDetected)
+            {
+                ShowTemporaryMessage(SuccessMessage, 2f);
+            }
+            else
+            {
+                // Floor lost → show instruction again
+                ShowPersistentMessage(InstructionMessage);
+            }
+        }
     }
 
     private void HandleTouchInput()
@@ -66,28 +120,22 @@ public class ARTapToMove : MonoBehaviour
         if (touch.phase != TouchPhase.Began) return;
 
         List<ARRaycastHit> hits = new List<ARRaycastHit>();
-
-        // Perform raycast from touch position against detected planes
         bool hasHit = arRaycastManager.Raycast(touch.position, hits, TrackableType.PlaneWithinBounds);
-
         bool placementSuccessful = false;
 
         if (hasHit)
         {
             foreach (var hit in hits)
             {
-                // Only accept horizontal upward-facing planes (i.e., floors/tables)
                 if (hit.trackable is ARPlane plane && plane.alignment == PlaneAlignment.HorizontalUp)
                 {
-                    Vector3 hitPoint = hit.pose.position + Vector3.up * 0.02f; // Slight offset to avoid z-fighting
+                    Vector3 hitPoint = hit.pose.position + Vector3.up * 0.02f;
 
-                    // Move the controlled object
                     if (controlledObject != null)
                     {
                         controlledObject.transform.position = hitPoint;
                     }
 
-                    // Spawn or update visual indicator
                     if (moveIndicatorPrefab != null)
                     {
                         if (currentMoveIndicator != null)
@@ -97,18 +145,66 @@ public class ARTapToMove : MonoBehaviour
                     }
 
                     placementSuccessful = true;
-                    break; // Use the first valid floor hit
+                    break;
                 }
             }
         }
 
-        // Update UI status indicator color
+        // Brief tap feedback (doesn't override continuous status)
         if (statusIndicatorImage != null)
         {
             statusIndicatorImage.color = placementSuccessful ? successColor : failureColor;
         }
+    }
 
-        // Optional: Log for debugging
-        // Debug.Log(placementSuccessful ? "Placed on ground successfully!" : "No valid ground detected.");
+    private void UpdateFloorStatus(bool detected)
+    {
+        if (statusIndicatorImage != null)
+        {
+            statusIndicatorImage.color = detected ? successColor : failureColor;
+        }
+    }
+
+    private void ShowPersistentMessage(string message)
+    {
+        if (messageCoroutine != null)
+        {
+            StopCoroutine(messageCoroutine);
+            messageCoroutine = null;
+        }
+
+        if (instructionText != null)
+        {
+            instructionText.text = message;
+            instructionText.gameObject.SetActive(true);
+        }
+    }
+
+    private void ShowTemporaryMessage(string message, float duration)
+    {
+        if (messageCoroutine != null)
+        {
+            StopCoroutine(messageCoroutine);
+        }
+
+        messageCoroutine = StartCoroutine(TemporaryMessageRoutine(message, duration));
+    }
+
+    private IEnumerator TemporaryMessageRoutine(string message, float duration)
+    {
+        if (instructionText != null)
+        {
+            instructionText.text = message;
+            instructionText.gameObject.SetActive(true);
+        }
+
+        yield return new WaitForSeconds(duration);
+
+        //if (instructionText != null && floorCurrentlyDetected) // Only hide if floor is still detected
+        //{
+        //    instructionText.gameObject.SetActive(false);
+        //}
+
+        messageCoroutine = null;
     }
 }

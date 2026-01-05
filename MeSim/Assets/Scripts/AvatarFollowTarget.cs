@@ -49,6 +49,13 @@ public class AvatarFollowTarget : MonoBehaviour
             rpmPlayerRoot.rotation = Quaternion.Slerp(rpmPlayerRoot.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
-        avatarAnimator.Play("Walk");
+        if (ToggleScaleButton.instance.isMaximized)
+        {
+            avatarAnimator.Play("Walk");
+        }
+        else 
+        {
+            avatarAnimator.Play("Run");
+        }
     }
 }
