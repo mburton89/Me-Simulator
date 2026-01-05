@@ -29,6 +29,11 @@ namespace ReadyPlayerMe.Samples.QuickStart
         private string pendingAvatarUrl;
         private bool attemptAutoLoad = false; // Flag to trigger delayed auto-load
 
+        [SerializeField] GameObject smallButtonContainer;
+        [SerializeField] GameObject largeButtonContainer;
+
+        [SerializeField] Button smallRPMButton;
+
         private void Awake()
         {
             thirdPersonLoader.OnLoadComplete += OnThirdPersonLoadComplete;
@@ -71,6 +76,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
         private void OnEnable()
         {
             openPersonalAvatarPanelButton.onClick.AddListener(OnOpenPersonalAvatarPanel);
+            smallRPMButton.onClick.AddListener(OnOpenPersonalAvatarPanel);
             closeButton.onClick.AddListener(OnCloseButton);
             linkButton.onClick.AddListener(OnLinkButton);
             loadAvatarButton.onClick.AddListener(OnLoadAvatarButton);
@@ -80,6 +86,7 @@ namespace ReadyPlayerMe.Samples.QuickStart
         private void OnDisable()
         {
             openPersonalAvatarPanelButton.onClick.RemoveListener(OnOpenPersonalAvatarPanel);
+            smallRPMButton.onClick.RemoveListener(OnOpenPersonalAvatarPanel);
             closeButton.onClick.RemoveListener(OnCloseButton);
             linkButton.onClick.RemoveListener(OnLinkButton);
             loadAvatarButton.onClick.RemoveListener(OnLoadAvatarButton);
@@ -144,6 +151,9 @@ namespace ReadyPlayerMe.Samples.QuickStart
                     PlayerPrefs.Save();
                     Debug.Log($"Avatar loaded and URL saved: {pendingAvatarUrl}");
                 }
+
+                largeButtonContainer.SetActive(false);
+                smallButtonContainer.SetActive(true);
             }
             else
             {
