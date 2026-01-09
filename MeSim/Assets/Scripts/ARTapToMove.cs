@@ -34,8 +34,10 @@ public class ARTapToMove : MonoBehaviour
     private ARRaycastManager arRaycastManager;
     private GameObject currentMoveIndicator;
 
-    // Current floor detection state
+    // Detection state
     private bool floorCurrentlyDetected = false;
+    private bool hasEverDetectedFloor = false; // NEW: Tracks if we've ever seen a floor
+
     private Coroutine messageCoroutine;
 
     private const string InstructionMessage = "Point your camera at the floor to detect it.";
@@ -62,16 +64,16 @@ public class ARTapToMove : MonoBehaviour
 
     private void InitializeUI()
     {
-        // Start with red + instruction text
+        floorCurrentlyDetected = false;
+        hasEverDetectedFloor = false;
+
         UpdateFloorStatus(false);
+        ShowPersistentMessage(InstructionMessage); // Show instruction at start
     }
 
     private void Update()
     {
-        // Always check floor status (detected or lost)
         CheckFloorStatusContinuously();
-
-        // Handle taps separately
         HandleTouchInput();
     }
 
@@ -94,7 +96,6 @@ public class ARTapToMove : MonoBehaviour
             }
         }
 
-        // Only update UI if the detection state changed
         if (currentlyDetected != floorCurrentlyDetected)
         {
             floorCurrentlyDetected = currentlyDetected;
@@ -102,7 +103,17 @@ public class ARTapToMove : MonoBehaviour
 
             if (floorCurrentlyDetected)
             {
-                ShowTemporaryMessage(SuccessMessage, 2f);
+                // First time ever detecting floor?
+                if (!hasEverDetectedFloor)
+                {
+                    hasEverDetectedFloor = true;
+                    ShowTemporaryMessage(SuccessMessage, 2f); // Show "Floor Found!" only once
+                }
+                // If floor was lost before, hide instruction text (but don't show success again)
+                else if (instructionText != null && instructionText.gameObject.activeSelf)
+                {
+                    instructionText.gameObject.SetActive(false);
+                }
             }
             else
             {
@@ -150,7 +161,7 @@ public class ARTapToMove : MonoBehaviour
             }
         }
 
-        // Brief tap feedback (doesn't override continuous status)
+        // Brief tap feedback
         if (statusIndicatorImage != null)
         {
             statusIndicatorImage.color = placementSuccessful ? successColor : failureColor;
@@ -200,10 +211,12 @@ public class ARTapToMove : MonoBehaviour
 
         yield return new WaitForSeconds(duration);
 
-        //if (instructionText != null && floorCurrentlyDetected) // Only hide if floor is still detected
-        //{
-        //    instructionText.gameObject.SetActive(false);
-        //}
+        // Hide the "Floor Found!" message after delay
+        // Only if floor is still detected (safe fallback)
+        if (floorCurrentlyDetected && instructionText != null)
+        {
+            instructionText.gameObject.SetActive(false);
+        }
 
         messageCoroutine = null;
     }
