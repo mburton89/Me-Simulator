@@ -130,6 +130,15 @@ public class ARTapToMove : MonoBehaviour
         Touch touch = Input.GetTouch(0);
         if (touch.phase != TouchPhase.Began) return;
 
+        // Ignore touches in the bottom 20% of the screen
+        float screenHeight = Screen.height;
+        float bottomThreshold = screenHeight * 0.20f; // Bottom 20%
+
+        if (touch.position.y <= bottomThreshold)
+        {
+            return; // Ignore this touch
+        }
+
         List<ARRaycastHit> hits = new List<ARRaycastHit>();
         bool hasHit = arRaycastManager.Raycast(touch.position, hits, TrackableType.PlaneWithinBounds);
         bool placementSuccessful = false;
